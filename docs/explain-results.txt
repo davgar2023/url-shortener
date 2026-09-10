@@ -1,0 +1,42 @@
+BEGIN
+SET
+INSERT 0 100000
+ANALYZE
+                                                         QUERY PLAN                                                          
+-----------------------------------------------------------------------------------------------------------------------------
+ Index Scan using links_short_code_key on links  (cost=0.42..8.44 rows=1 width=74) (actual time=0.010..0.011 rows=1 loops=1)
+   Index Cond: ((short_code)::text = 'X0050001'::text)
+   Filter: ((disabled_at IS NULL) AND ((expires_at IS NULL) OR (expires_at > statement_timestamp())))
+   Buffers: shared hit=4
+ Planning:
+   Buffers: shared hit=52
+ Planning Time: 0.384 ms
+ Execution Time: 0.041 ms
+(8 rows)
+
+                                                                       QUERY PLAN                                                                        
+---------------------------------------------------------------------------------------------------------------------------------------------------------
+ Delete on links l  (cost=26.89..823.98 rows=0 width=0) (actual time=0.744..0.745 rows=0 loops=1)
+   Buffers: shared hit=701
+   CTE batch
+     ->  Limit  (cost=0.29..26.48 rows=100 width=30) (actual time=0.019..0.368 rows=100 loops=1)
+           Buffers: shared hit=201
+           ->  LockRows  (cost=0.29..2605.39 rows=9947 width=30) (actual time=0.018..0.355 rows=100 loops=1)
+                 Buffers: shared hit=201
+                 ->  Index Scan using links_expiration_idx on links  (cost=0.29..2505.92 rows=9947 width=30) (actual time=0.009..0.088 rows=100 loops=1)
+                       Index Cond: (expires_at <= statement_timestamp())
+                       Buffers: shared hit=101
+   ->  Nested Loop  (cost=0.42..797.50 rows=100 width=46) (actual time=0.045..0.653 rows=100 loops=1)
+         Buffers: shared hit=601
+         ->  CTE Scan on batch b  (cost=0.00..2.00 rows=100 width=56) (actual time=0.036..0.440 rows=100 loops=1)
+               Buffers: shared hit=201
+         ->  Index Scan using links_pkey on links l  (cost=0.42..7.96 rows=1 width=22) (actual time=0.002..0.002 rows=1 loops=100)
+               Index Cond: (id = b.id)
+               Buffers: shared hit=400
+ Planning:
+   Buffers: shared hit=34
+ Planning Time: 0.269 ms
+ Execution Time: 0.881 ms
+(21 rows)
+
+ROLLBACK

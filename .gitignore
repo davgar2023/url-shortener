@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+infra/nginx/certs/*
+!infra/nginx/certs/.gitkeep
+coverage/
+*.log
+.DS_Store

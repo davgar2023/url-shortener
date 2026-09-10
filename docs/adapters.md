@@ -1,0 +1,11 @@
+# Adaptadores compartidos — gate 3
+
+`loadConfig()` valida al inicio secretos (DB/Redis al menos 16 caracteres; RATE_LIMIT_SECRET 32), puertos, límites, URL base y un peer IP explícito para el proxy. Los errores mencionan únicamente el nombre de la variable. No se imprime el objeto Config. El proceso debe crear exactamente un `Database(config.database, logger)` y un `createRedisClient(config.redis, logger)` y pasarlos a servicios; no hay singleton global ni pools por petición. Mantenimiento usa otro proceso/rol.
+
+Database conserva `#pool` y `#execute` privados en runtime. Solo importa pg este módulo. Todas sus consultas invocan las funciones publicadas y todos los argumentos variables se parametrizan. Los límites de pool incluyen conexión, inactividad y statement_timeout. SQLSTATE 23505 produce CollisionError; demás errores producen AppError UNAVAILABLE sin causa SQL. Los eventos del pool registran únicamente un identificador seguro. `health` transforma fallos en false. La inyección PoolPort permite tests de contratos sin iniciar conexiones.
+
+`LinkCache` ofrece get/set/delete/health; sus contadores son una copia de hit/miss/error. JSON se valida antes de mapear fechas. Nunca escribe TTL no positivo ni enlaces deshabilitados; usa PX para acotar exactamente por expiración con precisión de milisegundos. Lecturas, escrituras e invalidación fallidas son fail-open. La API debe validar cada hit con PostgreSQL, cuya respuesta prevalece. El cliente ioredis se comparte con el rate limiter, desactiva la cola offline y tiene timeouts y reconexión acotada; el composition root se encarga de `redis.quit()`/`disconnect()` al finalizar. CachePort permite fakes sin Redis.
+
+AppError fija status, code y mensaje público; CollisionError es interno. El logger serializa únicamente eventos restringidos y metadatos enumerados, nunca URLs, cabeceras, SQL, errores originales ni secretos. No pasar URLs o credenciales como eventos.
+
+Verificación reproducible: `node --import tsx --test tests/adapters.test.ts` y `npm run typecheck`. El test de pool verifica encapsulación, parámetros, mapeo, cierre y sanitización; el de caché prueba TTL, JSON inválido, expiración y degradación; configuración y logging tienen pruebas adversariales. Estos tests no sustituyen los tests PostgreSQL reales de gate 2 ni E2E de gate 5.

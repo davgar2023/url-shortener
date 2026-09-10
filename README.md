@@ -1,5 +1,7 @@
 # URL Shortener
 
+[![Node.js](https://img.shields.io/badge/Node.js-22%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/) [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/) [![Express](https://img.shields.io/badge/Express-5-000000?logo=express&logoColor=white)](https://expressjs.com/) [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/) [![Redis](https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white)](https://redis.io/) [![Nginx](https://img.shields.io/badge/Nginx-ready-009639?logo=nginx&logoColor=white)](https://nginx.org/) [![Tests](https://img.shields.io/badge/tests-21%20passing-2ea44f)](tests/)
+
 A secure, stateless URL shortener built with TypeScript, Node.js, Express, PostgreSQL, Redis, and Nginx. PostgreSQL is the source of truth. Node.js accesses it only through the typed `Database` class and the published `link_api` functions; the runtime role has no direct table privileges.
 
 ![Runtime architecture](docs/assets/url-shortener-architecture.png)

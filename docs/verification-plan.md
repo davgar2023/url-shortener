@@ -1,22 +1,22 @@
-# Plan de verificación
+# Verification Plan
 
-Los gates se ejecutan en orden. Las pruebas documentales no sustituyen las pruebas de comportamiento. Los resultados medidos se registrarán en `test-report.md` con comandos, fecha y limitaciones.
+Gates run in order. Documentation tests do not replace behavior tests. Measured results are recorded in `test-report.md` with commands, date, and limitations.
 
-| Gate | Evidencia requerida | Casos negativos |
+| Gate | Required evidence | Negative cases |
 |---|---|---|
-| 1 — contrato | Estructura y contratos HTTP/SQL, diagramas, typecheck | Capacidad marcada como hipótesis |
-| 2 — PostgreSQL | Migración desde cero y segunda ejecución; funciones y restricciones en servidor real | Runtime sin acceso a tablas, secuencias, DDL ni operaciones administrativas; colisión, URL inválida, expiración inválida |
-| 3 — adaptadores | Database parametrizada, cierre del pool, errores sanitizados; caché y configuración probadas | Timeout, desconexión, error SQL; expiración de TTL; JSON Redis inválido |
-| 4 — aplicación | Controller → service → Database, creación y redirect; seguridad y rate limiting | Cinco colisiones, entradas inválidas, body excesivo, error Redis; invalidación fallida con enlace deshabilitado |
-| 5 — infraestructura | Dos instancias, TLS Nginx, persistencia y Redis real | X-Forwarded-For falsificado; rate limiting cruzado; Redis detenido y restaurado; expiración y revocación |
-| 6 — aceptación | Lint, typecheck, suite completa, arquitectura, EXPLAIN y carga | No SQL de tablas ni import pg fuera de Database; errores y latencia medidos sin inventar cifras |
+| 1 — contract | HTTP/SQL contracts, diagrams, typecheck | Capacity marked as an assumption |
+| 2 — PostgreSQL | Fresh and replayed migration; functions and constraints on a real server | Runtime cannot access tables, sequences, DDL, or administrative operations; collision, invalid URL, invalid expiration |
+| 3 — adapters | Parameterized Database, pool shutdown, sanitized errors; cache and config tested | Timeout, disconnect, SQL error; TTL expiration; invalid Redis JSON |
+| 4 — application | Controller → service → Database, creation and redirect; security and rate limiting | Five collisions, invalid input, oversized body, Redis error, failed invalidation of disabled link |
+| 5 — infrastructure | Two instances, Nginx TLS, persistence, and real Redis | Forged X-Forwarded-For, cross-instance limits, Redis stop/restore, expiration and revocation |
+| 6 — acceptance | Lint, typecheck, full suite, architecture, EXPLAIN, and measured load | No table SQL or `pg` import outside Database; measured errors and latency without invented figures |
 
-## Política de pruebas de seguridad
+## Security test policy
 
-Probar URLs con protocolos prohibidos, credenciales, caracteres de control, localhost, nombres sin dominio público, sufijos internos, IPv4 privada/loopback/link-local/multicast/reservada, IPv6 no global y formas IPv4 codificadas que normaliza WHATWG URL. No se consulta la URL de destino; bloquear dominios que resuelvan a direcciones privadas requeriría una política DNS adicional y no se promete protección contra rebinding en el navegador del visitante.
+Test prohibited schemes, credentials, controls, localhost, non-public names, internal suffixes, private/loopback/link-local/multicast/reserved IPv4, non-global IPv6, and encoded IPv4 forms normalized by WHATWG URL. Never request the destination; blocking domains that resolve to private addresses would require an additional DNS policy and would not guarantee browser rebinding protection.
 
-Verificar que los errores de PostgreSQL, Redis y JSON no incluyen el cuerpo, destino ni contraseñas. Los logs de acceso deben contener exclusivamente metadatos permitidos. Nginx sobrescribe los headers de proxy y ninguna API publica su puerto al host.
+Verify PostgreSQL, Redis, and JSON errors contain no body, destination, or passwords. Access logs contain only allowed metadata. Nginx overwrites proxy headers and no API publishes its port to the host.
 
-## Integridad de los resultados
+## Result integrity
 
-Las pruebas deben fallar si faltan sus dependencias, salvo una suite explícitamente separada y documentada; no contar pruebas omitidas como aprobadas. Las herramientas de carga no siguen el redirect: evitan tráfico a destinos externos. Los fixtures de EXPLAIN se crean dentro de una transacción que termina con ROLLBACK. La prueba de caída de Redis restaura el servicio incluso cuando una aserción falla.
+Tests must fail when dependencies are missing, except for explicitly separated and documented suites; skipped tests are not counted as passes. Load tools must not follow redirects or generate traffic to external destinations. EXPLAIN fixtures run inside a transaction that ends with ROLLBACK. Redis outage tests restore the service even when an assertion fails.

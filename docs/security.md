@@ -1,19 +1,19 @@
-# Política de seguridad
+# Security Policy
 
-La creación admite un objeto JSON con `url` y `expiresAt` opcional, sin campos adicionales. La URL original y normalizada deben medir como máximo 2048 caracteres. Solo HTTP/HTTPS con autoridad explícita; se rechazan credenciales, whitespace, controles, backslash y sus escapes de control/backslash. `URL` normaliza esquema, host, puerto por defecto y representaciones IPv4 alternativas antes de aplicar la política de red. Los códigos usan exactamente ocho caracteres Base62.
+Creation accepts a JSON object with `url` and optional `expiresAt`, with no additional fields. Original and normalized URLs are limited to 2,048 characters. Only HTTP/HTTPS with an explicit authority is accepted; credentials, whitespace, control characters, backslashes, and encoded control/backslash forms are rejected. `URL` normalizes scheme, host, default port, and alternate IPv4 forms before network policy is applied. Codes are exactly eight Base62 characters.
 
-`ipaddr.js` admite únicamente direcciones clasificadas como unicast público. Rechaza loopback, redes privadas, link-local, multicast, unspecified, CGNAT, documentación y rangos reservados, así como IPv4 mapped IPv6 y rangos de transición. Los nombres DNS requieren al menos dos etiquetas válidas; se rechazan los sufijos localhost, local, internal, lan, home, localdomain, test, invalid, onion y arpa, incluso con punto final. Las fechas usan UTC ISO con segundos y milisegundos opcionales; deben ser futuras y representar una fecha real (sin rollover de calendario).
+`ipaddr.js` accepts only publicly routable unicast addresses. It rejects loopback, private, link-local, multicast, unspecified, CGNAT, documentation, reserved, IPv4-mapped IPv6, and transition ranges. DNS names require at least two valid labels; suffixes `localhost`, `local`, `internal`, `lan`, `home`, `localdomain`, `test`, `invalid`, `onion`, and `arpa` are rejected, including a trailing dot. Dates use UTC ISO format with optional seconds and milliseconds; they must be real future dates without calendar rollover.
 
-Esta política es sintáctica. No resuelve DNS ni efectúa solicitudes al destino. No garantiza que un dominio público nunca resuelva a una red privada, ni impide DNS rebinding o redirecciones posteriores del destino. La API entrega un redirect al navegador; no es un proxy HTTP ni un verificador de reputación o phishing.
+This policy is syntactic. It does not resolve DNS or request the destination. It cannot guarantee that a public domain never resolves to a private network, prevent DNS rebinding, or stop later redirects. The API gives the browser a redirect; it is not an HTTP proxy or reputation/phishing checker.
 
-## Límites distribuidos
+## Distributed limits
 
-Cada petición crea dos claves Redis: global por IP y operación por IP. El identificador es HMAC-SHA256 con el secreto compartido; no almacena la IP original. Cada IP comparte hash tag Redis para permitir la ejecución atómica del script en una misma ranura. No registrar IPs, secretos ni destinos.
+Each request creates two Redis keys: a global-per-IP key and an operation-per-IP key. The identifier is HMAC-SHA256 with the shared secret, so the original IP is not stored. Each IP uses a Redis hash tag so the atomic script runs in one slot. Do not log IPs, secrets, or destinations.
 
-Un único script Lua incrementa ambos contadores y establece expiración al primer incremento. Las ventanas son fijas, empiezan al primer acceso a cada contador y pueden admitir ráfagas en sus bordes. Los intentos rechazados cuentan en ambas cuotas, pero no renuevan el TTL. Si cualquiera excede su cuota, responde 429 con Retry-After igual al mayor TTL de las cuotas excedidas, mínimo un segundo. Las dos instancias usan el mismo Redis y secreto: no hay cuotas por proceso.
+One Lua script increments both counters and sets expiration on the first increment. Windows are fixed, start with the first access, and may allow edge bursts. Rejected attempts count toward both quotas but do not renew TTL. If either quota is exceeded, return 429 with `Retry-After` equal to the greatest exceeded TTL, with a minimum of one second. Both instances share Redis and the secret; quotas are not per-process.
 
-Redis inaccesible o respuesta inválida produce 503 en creación; redirección continúa y depende de la protección básica del proxy. No se reemplaza Redis con contadores locales. Los errores del backend Redis no se exponen al cliente. El controlador debe obtener la IP del peer y confiar únicamente en el proxy configurado, que sobrescribe X-Forwarded-For.
+Unavailable or invalid Redis returns 503 for creation; redirects continue under the proxy's basic protection. Local counters never replace Redis. Redis backend errors are not exposed to clients. The controller must use the peer IP and trust only the configured proxy, which overwrites `X-Forwarded-For`.
 
-## Verificación
+## Verification
 
-`tests/security.test.ts` cubre destinos permitidos, normalización, formas IPv4 alternativas, IPv6, rangos privados/reservados, dominios internos, credenciales, controles, esquemas, longitudes, fechas inválidas, códigos, HMAC y claves compartidas, cuotas, Retry-After y caída de Redis. Estos tests usan un Redis simulado; la atomicidad, expiración y distribución deben comprobarse además con Redis real en el gate E2E.
+`tests/security.test.ts` covers allowed destinations, normalization, alternate IPv4 forms, IPv6, private/reserved ranges, internal domains, credentials, controls, schemes, lengths, invalid dates, codes, HMAC and shared keys, quotas, `Retry-After`, and Redis failure. These tests use a Redis fake; atomicity, expiration, and distribution must also be checked with real Redis in E2E.

@@ -1,16 +1,16 @@
-# Contratos de integración — fase 1
+# Integration Contracts — Phase 1
 
-Este contrato es la referencia de las siguientes fases. Los tests de esta fase verifican su presencia y consistencia documental; las siguientes fases verifican el comportamiento real.
+This contract is the reference for later phases. Phase tests verify its presence and consistency; later phases verify actual behavior.
 
 ## HTTP
 
-* `POST /shorten`: JSON `{ "url": "https://example.org/path", "expiresAt": "2030-01-01T00:00:00.000Z" }`. `expiresAt` es opcional; si se proporciona debe ser fecha ISO válida y futura. Éxito: `201` con `{ "shortCode": "Ab12Cd34", "shortUrl": "https://short.example/Ab12Cd34" }`. La URL corta se deriva de `BASE_URL`, nunca del Host recibido.
-* `GET /:code`: código exactamente de 8 caracteres Base62 (`^[A-Za-z0-9]{8}$`). Éxito: `302`, `Location` con el destino original y `Cache-Control: no-store`. Desconocido, expirado o deshabilitado: `404` sin revelar cuál fue la causa. Código inválido: `400`.
-* `GET /health`: disponibilidad del proceso. `GET /ready`: disponibilidad de PostgreSQL; Redis degradado se informa sin impedir los GET. No exponer credenciales, URLs ni detalles de infraestructura.
-* Error uniforme: `{ "error": { "code": "INVALID_INPUT", "message": "Invalid input" } }`. Códigos: `INVALID_INPUT` (400), `NOT_FOUND` (404), `PAYLOAD_TOO_LARGE` (413), `RATE_LIMITED` (429), `INTERNAL_ERROR` (500), `UNAVAILABLE` (503). Las respuestas 429 incluyen `Retry-After` en segundos. JSON malformado es 400.
-* URL máxima: 2048 caracteres; body máximo: 4096 bytes. Solo HTTP/HTTPS; rechazar credenciales, espacios de control y destinos privados/locales según política de seguridad. La aplicación no visita el destino.
+* `POST /shorten`: JSON `{ "url": "https://example.org/path", "expiresAt": "2030-01-01T00:00:00.000Z" }`. `expiresAt` is optional but must be a valid future ISO date when present. Success: `201` with `{ "shortCode": "Ab12Cd34", "shortUrl": "https://short.example/Ab12Cd34" }`. The short URL comes from `BASE_URL`, never the received Host.
+* `GET /:code`: exactly eight Base62 characters (`^[A-Za-z0-9]{8}$`). Success: `302`, Location with the original destination, and `Cache-Control: no-store`. Unknown, expired, or disabled: uniform `404`. Invalid code: `400`.
+* `GET /health`: process availability. `GET /ready`: PostgreSQL availability; degraded Redis is reported without blocking GET. Never expose credentials, URLs, or infrastructure details.
+* Uniform error: `{ "error": { "code": "INVALID_INPUT", "message": "Invalid input" } }`. Codes: `INVALID_INPUT` (400), `NOT_FOUND` (404), `PAYLOAD_TOO_LARGE` (413), `RATE_LIMITED` (429), `INTERNAL_ERROR` (500), `UNAVAILABLE` (503). 429 responses include `Retry-After` seconds. Malformed JSON is 400.
+* URL maximum: 2,048 characters; body maximum: 4,096 bytes. HTTP/HTTPS only; reject credentials, control whitespace, and private/local destinations. The application never requests the destination.
 
-## Dominio y base de datos
+## Domain and database
 
 ```typescript
 interface Link {
@@ -37,25 +37,25 @@ interface DatabasePort {
 }
 ```
 
-`resolveLink` devuelve null si está ausente, expirado (`expires_at <= statement_timestamp()`) o deshabilitado. PostgreSQL decide vigencia y unicidad. `disableLink` y `deleteLink` retornan el registro afectado para invalidar su código; ausente devuelve null. Deshabilitar es idempotente. Purga admite de 1 a 10000 registros por lote.
+`resolveLink` returns null when absent, expired (`expires_at <= statement_timestamp()`), or disabled. PostgreSQL decides validity and uniqueness. Disable/delete return the affected record for cache invalidation; absent returns null. Disable is idempotent. Purge accepts 1–10,000 records per batch.
 
-La clase `Database` es el único importador de `pg` y el único propietario de un pool por proceso. No publica query arbitraria. Cada método invoca exclusivamente su función parametrizada del schema `link_api`: `create_link`, `resolve_link`, `disable_link`, `delete_link`, `purge_expired_links`, `health`. `close` cierra el pool. El runtime puede ejecutar solo create/resolve/health; mantenimiento usa la misma clase con credenciales de un rol separado para mutaciones y purga. Una violación de unicidad (`23505`) se traduce a un error de colisión tipado y permite hasta cinco intentos de creación; agotarlos produce 503. Otros errores de SQL nunca llegan al cliente.
+`Database` is the only importer of `pg` and the only owner of one pool per process. It exposes no arbitrary query. Each method calls only its parameterized `link_api` function. A uniqueness violation (`23505`) becomes a typed collision error and permits up to five creation attempts; exhaustion returns 503. Other SQL errors never reach clients.
 
-## Caché y límites
+## Cache and limits
 
-Cache-aside: clave `link:<code>`, valor Link serializado (fechas ISO), TTL configurado y acotado por la expiración. TTL no positivo impide escritura. Nunca cachear resultados negativos. En cada hit se llama igualmente `Database.resolveLink` para validar estado vigente; si devuelve null se elimina la entrada y se responde 404. Esto evita usar datos obsoletos tras una deshabilitación incluso si Redis o la invalidación fallan. El resultado de PostgreSQL prevalece. El punto de consistencia es la lectura SQL; una mutación concurrente posterior puede ocurrir antes de entregar el redirect.
+Cache-aside key `link:<code>`, serialized Link value with ISO dates, configured TTL bounded by expiration. Non-positive TTL prevents writes. Negative results are never cached. Every hit still calls `Database.resolveLink`; PostgreSQL wins. A null result deletes the entry and returns 404. This prevents stale redirects after disable even if Redis or invalidation fails.
 
-Los métodos de mantenimiento del servicio invalidan después de deshabilitar/eliminar; la purga física no sustituye las comprobaciones lógicas de expiración. Registrar contadores de hit/miss/error sin URLs. El coste explícito es una lectura PostgreSQL por GET, también con hit: esta versión prioriza revocación correcta sobre ahorro de QPS SQL.
+Service maintenance methods invalidate after disable/delete; physical purge does not replace logical expiration checks. Record hit/miss/error counters without URLs. The explicit cost is one PostgreSQL read per GET, including cache hits, prioritizing correct revocation over SQL QPS savings.
 
-Rate limiting por IP y tipo de operación con Redis y ejecución atómica: creación (10/minuto), redirección (120/minuto), global por IP (200/minuto), todos configurables. Un rechazo devuelve 429 y Retry-After. Redis inaccesible: POST responde 503 y GET consulta PostgreSQL; Nginx mantiene protección básica local. No usar contadores locales Express como sustituto distribuido. Nginx sobrescribe X-Forwarded-For y Express confía solo en la red/peer del proxy configurado; API, PostgreSQL y Redis sin puertos públicos.
+Rate limiting uses atomic Redis execution by IP and operation: creation (10/minute), redirect (120/minute), and global per IP (200/minute), all configurable. Rejects return 429 and Retry-After. Redis unavailable: POST returns 503 and GET queries PostgreSQL. Nginx provides basic local protection. API, PostgreSQL, and Redis have no public ports.
 
-## Responsabilidades y gates
+## Responsibilities and gates
 
-`apps/api` contiene controller → LinksService → Database. `packages/database` implementa SQL publicado y pool; `cache` adaptación Redis; `security` validación y headers; `rate-limit` contadores distribuidos; `config` valida entorno al iniciar; `logger` escribe metadatos seguros. Errores compartidos podrán alojarse en `config` o un package `errors` explícito. SQL vive en `database/{migrations,functions,roles}`. Compose y proxy viven en `infra`.
+`apps/api` contains controller → LinksService → Database. `packages/database` implements published SQL and pooling; `cache` adapts Redis; `security` validates input and headers; `rate-limit` implements distributed counters; `config` validates environment; `logger` writes safe metadata. SQL lives in `database/{migrations,functions,roles}`. Compose and proxy belong in `infra`.
 
-1. **Gate 1:** estructura, contratos, diseño y tests documentales pasan antes de implementar.
-2. **Gate 2:** migraciones aplicadas en PostgreSQL real; restricciones, funciones, roles y permission denied comprobados.
-3. **Gate 3:** clase Database y packages compartidos tipados, pool y adaptadores probados.
-4. **Gate 4:** dominio, API, seguridad y caché integrados; tests de colisiones, expiración, validación, invalidación y degradación.
-5. **Gate 5:** Compose con dos instancias, pruebas E2E, balanceo, rate limiting distribuido y resiliencia real.
-6. **Gate 6:** lint, typecheck, arquitectura, suite completa, EXPLAIN y carga medidos; README y reporte alineados con resultados. Nunca declarar terminado un gate no ejecutado.
+1. **Gate 1:** structure, contracts, design, and documentation tests pass before implementation.
+2. **Gate 2:** migrations, constraints, functions, roles, and permission denial are verified on real PostgreSQL.
+3. **Gate 3:** typed Database and shared packages, pool, and adapters are tested.
+4. **Gate 4:** domain, API, security, and cache are integrated and tested.
+5. **Gate 5:** Compose with two instances, E2E, balancing, distributed limiting, and resilience.
+6. **Gate 6:** lint, typecheck, full suite, architecture, EXPLAIN, and measured load; README and report match results. Never declare an unexecuted gate complete.

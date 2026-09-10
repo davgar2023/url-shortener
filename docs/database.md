@@ -1,34 +1,34 @@
-# PostgreSQL: instalación y permisos
+# PostgreSQL: Setup and Permissions
 
-PostgreSQL 17 es la autoridad para identidad, unicidad y vigencia. `link_data.links` está en 3FN: todos los atributos dependen de la identidad y no existen dependencias transitivas. Una sola entidad no necesita FK; inventar otra tabla para añadirlas no mejora la integridad.
+PostgreSQL 17 is authoritative for identity, uniqueness, and validity. `link_data.links` is in 3NF: every attribute depends on identity and there are no transitive dependencies. One entity needs no foreign key; inventing another table would not improve integrity.
 
-`id` UUID es PK y `short_code` tiene UNIQUE y CHECK Base62 de ocho caracteres. URL obligatoria, máximo 2048 caracteres, esquema HTTP/HTTPS, sin espacios ni controles. La aplicación añade la validación detallada de destinos. `created_at` es obligatorio; expiración debe ser posterior a creación y deshabilitación no anterior. Se permiten varias filas con el mismo destino. Un índice parcial `(expires_at,id) WHERE expires_at IS NOT NULL` soporta la selección ordenada para purga; UNIQUE soporta lookup por código.
+`id` is a UUID primary key and `short_code` has UNIQUE and eight-character Base62 CHECK constraints. URL is required, limited to 2,048 characters, HTTP/HTTPS only, with no whitespace or controls. The application adds detailed destination validation. `created_at` is required; expiration must be later than creation and disable time cannot be earlier. Multiple rows may share a destination. A partial `(expires_at,id) WHERE expires_at IS NOT NULL` index supports ordered purge; UNIQUE supports code lookup.
 
-## Credenciales y bootstrap
+## Credentials and bootstrap
 
-Generar secretos fuera del repositorio. Exportar `DB_RUNTIME_PASSWORD`, `DB_MIGRATOR_PASSWORD` y `DB_MAINTENANCE_PASSWORD`; bootstrap los importa con `psql \getenv`, sin literales de contraseña en archivos SQL ni argumentos de proceso. No activar shell tracing ni psql echo-all. Usar `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD` estándar (o pgpass) para conexión. Nunca registrar estas variables.
+Generate secrets outside the repository. Export `DB_RUNTIME_PASSWORD`, `DB_MIGRATOR_PASSWORD`, and `DB_MAINTENANCE_PASSWORD`; bootstrap reads them through `psql \\getenv`, with no password literals in SQL files or process arguments. Do not enable shell tracing or `psql echo-all`. Use standard `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, and `PGPASSWORD` (or pgpass). Never log these variables.
 
-1. Como administrador de la base dedicada ya creada, ejecutar `sh scripts/db-bootstrap.sh`.
-2. Conectar como `link_migrator` y ejecutar `sh scripts/db-migrate.sh`.
-3. Repetir migración para comprobar que es reejecutable.
+1. As administrator of the dedicated database, run `sh scripts/db-bootstrap.sh`.
+2. Connect as `link_migrator` and run `sh scripts/db-migrate.sh`.
+3. Repeat migration to verify replayability.
 
-El bootstrap requiere administrador porque crea roles y restringe acceso a la base. Es reejecutable y rota las contraseñas con los valores de entorno. No debe ejecutarse en una base compartida: revoca permisos PUBLIC de base y schema public.
+Bootstrap requires an administrator because it creates roles and restricts database access. It is replayable and rotates passwords from environment values. Do not run it on a shared database: it revokes PUBLIC privileges on the database and public schema.
 
-`link_owner` es NOLOGIN y posee schemas, tabla y funciones. `link_migrator` es LOGIN NOINHERIT, miembro de owner, y hace SET ROLE explícito en una transacción para DDL. Runtime y mantenimiento no pertenecen a owner. Ninguno de los cuatro tiene SUPERUSER, CREATEDB, CREATEROLE, REPLICATION ni BYPASSRLS.
+`link_owner` is NOLOGIN and owns schemas, tables, and functions. `link_migrator` is LOGIN NOINHERIT, a member of owner, and explicitly uses SET ROLE for DDL in a transaction. Runtime and maintenance are not owner members. None of the four roles has SUPERUSER, CREATEDB, CREATEROLE, REPLICATION, or BYPASSRLS.
 
-Runtime tiene CONNECT, USAGE de `link_api` y EXECUTE únicamente en create/resolve/health. Mantenimiento tiene CONNECT, USAGE de `link_api` y EXECUTE en disable/delete/purge/health. No tienen acceso a tablas, schema privado, DDL ni TEMP. Las funciones SECURITY DEFINER pertenecen a owner, fijan `search_path=pg_catalog, pg_temp` y califican tablas. PUBLIC carece de EXECUTE; también se revoca por default para nuevas funciones de owner. SQL no usa construcción dinámica de consultas de entrada.
+Runtime has CONNECT, USAGE on `link_api`, and EXECUTE only on create/resolve/health. Maintenance has CONNECT, USAGE, and EXECUTE on disable/delete/purge/health. Neither can access tables, the private schema, DDL, or TEMP. SECURITY DEFINER functions belong to owner, fix `search_path=pg_catalog, pg_temp`, and qualify tables. PUBLIC has no EXECUTE, and default EXECUTE is revoked for new owner functions. SQL never constructs dynamic queries from input.
 
-## Migraciones y funciones
+## Migrations and functions
 
-`database/migrate.sql` serializa migradores mediante advisory lock transaccional. Crea tracker `link_meta.migrations`, aplica cada versión una sola vez y confirma tracker junto con DDL. Cualquier error revierte toda la transacción. Las versiones publicadas son inmutables: añadir nuevas versiones para cambios. Este lab no incorpora checksums automáticos ni down migrations; revisar cambios históricos en Git y restaurar backup si se requiere recuperación de datos.
+`database/migrate.sql` serializes migrators with a transactional advisory lock. It creates `link_meta.migrations`, applies each version once, and commits the tracker with DDL. Any error rolls back the transaction. Published versions are immutable; add a new version for changes. This lab has no automatic checksums or down migrations; review Git history and restore backups for data recovery.
 
-`create_link(text,text,timestamptz)` retorna una fila. `resolve_link(text)` retorna cero o una fila vigente según `statement_timestamp()`. `disable_link(uuid)` es idempotente y retorna la fila afectada; `delete_link(uuid)` retorna la fila borrada. Ambos retornan cero filas si no existe. Los registros tienen `id`, `short_code`, `url`, `created_at`, `expires_at`, `disabled_at` (UUID y timestamptz nativos). La clase Database traduce a camelCase y Date. `health()` retorna boolean. `purge_expired_links(integer)` acepta 1–10000 y retorna cantidad borrada; usa FOR UPDATE SKIP LOCKED para trabajadores concurrentes. No elimina enlaces sin expiración ni sustituye el filtro lógico al resolver.
+`create_link(text,text,timestamptz)` returns one row. `resolve_link(text)` returns zero or one current row according to `statement_timestamp()`. `disable_link(uuid)` is idempotent and returns the affected row; `delete_link(uuid)` returns the deleted row. Both return zero rows when absent. Records contain native UUID and timestamptz fields. Database maps them to camelCase and Date. `health()` returns boolean. `purge_expired_links(integer)` accepts 1–10000 and returns deleted count; it uses FOR UPDATE SKIP LOCKED for concurrent workers. It never deletes non-expiring links or replaces logical resolution filtering.
 
-## Verificación real y planes
+## Real verification and plans
 
-Ejecutar con `psql -X -v ON_ERROR_STOP=1 -f <archivo>` usando la conexión indicada:
+Run with `psql -X -v ON_ERROR_STOP=1 -f <file>` using the indicated login:
 
-| Archivo | Login |
+| File | Login |
 | --- | --- |
 | tests/database/constraints.sql | link_migrator |
 | tests/database/catalog.sql | link_migrator |
@@ -36,6 +36,6 @@ Ejecutar con `psql -X -v ON_ERROR_STOP=1 -f <archivo>` usando la conexión indic
 | tests/database/maintenance.sql | link_maintenance |
 | tests/database/explain.sql | link_migrator |
 
-Las pruebas generan excepciones si falta una restricción o permiso; runtime intenta realmente SELECT/INSERT/UPDATE/DELETE, DDL, TEMP, mantenimiento y SET ROLE y exige SQLSTATE insufficient_privilege. No basta inspeccionar GRANTs. Se ejecutan transacciones con rollback para aislar fixtures. `explain.sql` carga 100.000 filas deterministas, ANALYZE, EXPLAIN (ANALYZE, BUFFERS) del lookup y purga de 100 filas, y ROLLBACK. Ejecutarlo en una base de pruebas sin códigos X0000001–X0100000; ANALYZE y el trabajo de I/O afectan temporalmente la instancia. El plan corresponde al SQL interno de las funciones, para observar índices que una llamada SECURITY DEFINER oculta tras Function Scan.
+Tests fail when a constraint or permission is missing. Runtime actually attempts SELECT/INSERT/UPDATE/DELETE, DDL, TEMP, maintenance, and SET ROLE and requires SQLSTATE `insufficient_privilege`; inspecting GRANTs alone is insufficient. Transactions roll back to isolate fixtures. `explain.sql` loads 100,000 deterministic rows, runs ANALYZE and EXPLAIN (ANALYZE, BUFFERS) for lookup and a 100-row purge, then rolls back. Use a test database without codes X0000001–X0100000. The plan targets function SQL so indexes are visible instead of hidden behind Function Scan.
 
-Los scripts preparados no equivalen a resultados aprobados. El reporte del proyecto registra la versión real, resultados y planes cuando se ejecuten.
+Prepared scripts are not approved results. The project report records the real version, results, and plans when executed.

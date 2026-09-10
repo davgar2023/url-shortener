@@ -1,29 +1,29 @@
-# URL Shortener — diseño del sistema
+# URL Shortener — System Design
 
-## Arquitectura
+## Architecture
 
 ```mermaid
 flowchart TD
-  Client[Cliente] --> Nginx[Nginx: TLS, balanceo y protección básica]
+  Client[Client] --> Nginx[Nginx: TLS, load balancing, basic protection]
   Nginx --> API1[Express 1 stateless]
   Nginx --> API2[Express 2 stateless]
-  API1 --> Service[LinksService por proceso]
+  API1 --> Service[Per-process LinksService]
   API2 --> Service
-  Service --> DB[Database: pool por proceso]
+  Service --> DB[Database: per-process pool]
   DB --> Functions[PostgreSQL link_api.*]
-  Functions --> Tables[Tablas 3FN]
-  Service --> Redis[Redis: caché y rate limiting distribuido]
+  Functions --> Tables[3NF tables]
+  Service --> Redis[Redis: cache and distributed rate limiting]
 ```
 
-Nginx es el único servicio publicado. Dos procesos API comparten PostgreSQL y Redis por red interna; cada uno tiene su pool. TLS se termina en Nginx con certificados montados. El lab puede usar certificados autofirmados documentados; producción requiere certificados confiables, rotación y secretos gestionados. No se incorporan microservicios, Kafka ni Kubernetes.
+Nginx is the only public service. Two API processes share PostgreSQL and Redis over an internal network; each process owns its pool. TLS terminates at Nginx with mounted certificates. Self-signed certificates are acceptable for the lab; production requires trusted certificates, rotation, and managed secrets. This design does not add microservices, Kafka, or Kubernetes.
 
-## Flujos
+## Flows
 
-POST /shorten: Nginx limita tamaño y tasa básica → middleware aplica límites Redis global y de creación → valida JSON, URL y expiración → genera 8 caracteres Base62 con aleatoriedad criptográfica sin sesgo → Database.createLink invoca link_api.create_link → UNIQUE decide colisión y se reintenta hasta cinco veces → se devuelve 201. El destino se guarda una vez por código; distintas creaciones de la misma URL son válidas. No se hacen requests server-side.
+`POST /shorten`: Nginx limits size and basic rate → Redis global and creation limits → JSON, URL, and expiration validation → eight unbiased cryptographic Base62 characters → `Database.createLink` calls `link_api.create_link` → the UNIQUE constraint determines collisions and retries up to five times → return 201. The destination is stored once per code; creating multiple codes for the same URL is valid. The server never requests the destination.
 
-GET /:code: valida código → aplica límites Redis global y de redirección → obtiene posible caché → siempre resuelve estado actual mediante link_api.resolve_link → ausente responde 404 y elimina caché → vigente rellena/refresca caché dentro de su TTL y responde 302 no-store. Redis fallido omite caché y limitador GET; PostgreSQL fallido produce 503. La validación SQL por hit es una decisión deliberada para impedir redirecciones por entradas deshabilitadas obsoletas. No se promete reducir consultas SQL gracias a esta caché.
+`GET /:code`: validate code → apply Redis global and redirect limits → read possible cache entry → always resolve current state through `link_api.resolve_link` → missing returns 404 and removes cache → current entry refreshes cache within TTL and returns 302 `no-store`. If Redis fails, cache and GET limiting are skipped; PostgreSQL failure returns 503. SQL validation on every hit deliberately prevents redirects to stale disabled records. This cache does not promise fewer SQL queries.
 
-## Modelo e índices
+## Data model and indexes
 
 ```mermaid
 erDiagram
@@ -37,20 +37,20 @@ erDiagram
   }
 ```
 
-Una entidad es suficiente. Cada atributo depende de la clave completa, sin dependencias transitivas ni campos derivados. No se almacenan shortUrl, hostname redundante ni contadores. No se inventan FK sin entidades relacionadas. PK UUID y UNIQUE short_code soportan identidad y lookup; índice parcial de expires_at no nulo permite purga por lote ordenada. CHECK validan código y longitudes, esquemas HTTP/HTTPS y expiración posterior a creación; la validación detallada del destino ocurre también antes de SQL. La migración documenta exactamente las restricciones implementadas.
+One entity is sufficient. Every attribute depends on the full key, with no transitive dependencies or derived fields. The schema does not store `shortUrl`, a redundant hostname, or counters. A partial `(expires_at,id)` index supports ordered batch purges; the UNIQUE constraint supports code lookup. CHECK constraints enforce code, length, HTTP/HTTPS scheme, and expiration rules; detailed destination validation also runs before SQL.
 
-PostgreSQL frente a SQLite: dos instancias concurrentes requieren base central, pool, control de permisos por operación, funciones SECURITY DEFINER y herramientas de análisis/backup. SQLite es útil para aplicaciones embebidas, pero no ofrece este contrato de roles y API SQL publicado. El schema privado no es accesible al runtime. SECURITY DEFINER usa search_path seguro, nombres cualificados y propietario sin login; PUBLIC no puede ejecutar las funciones.
+PostgreSQL is used instead of SQLite because concurrent instances require a central database, connection pools, operation-level permissions, `SECURITY DEFINER` functions, and backup/analysis tooling. The private schema is inaccessible to runtime. Security-definer functions use a safe search path, qualified names, and a non-login owner; PUBLIC cannot execute them.
 
-## Capacidad: hipótesis, no mediciones
+## Capacity: assumptions, not measurements
 
-Supongamos 100 creaciones/s y 1000 redirecciones/s de pico, carga media del 10%, retención media de 30 días. 10 creaciones/s × 86400 × 30 = 25.920.000 enlaces retenidos. Con URL media de 300 bytes y presupuesto de 600 bytes por fila e índices, son aproximadamente 15,6 GB decimales; reservar al menos el doble para WAL, vacuum y crecimiento, más backups separados. Códigos: 62^8 = 218.340.105.584.896 combinaciones; a 25,92 millones de códigos ocupados una nueva elección colisiona con probabilidad aproximada 1,19e-7. La restricción UNIQUE sigue siendo obligatoria.
+Assume 100 creations/s and 1,000 redirects/s at peak, 10% average load, and 30-day retention. That is 25,920,000 retained links. At a 300-byte average URL and a 600-byte row-plus-index budget, storage is about 15.6 decimal GB; reserve at least twice that for WAL, vacuum, growth, and separate backups. There are 62^8 = 218,340,105,584,896 codes; with 25.92 million occupied codes, a new random choice collides with an approximate probability of 1.19e-7. UNIQUE remains mandatory.
 
-Todos los GET consultan PostgreSQL: el pico hipotético exige al menos 1100 operaciones SQL/s. Dos pools de 10 conexiones suman 20; con latencia SQL media de 10 ms, el límite teórico sin sobrecarga sería 2000 operaciones/s. No es capacidad comprobada ni garantía: contención, disco, red y colas reducen esa cifra. Redis contendría por ejemplo 100.000 destinos calientes × 600 bytes ≈ 60 MB de payload, con memoria adicional para metadatos y limitadores. La prueba de carga debe reportar hardware, duración, concurrencia, QPS efectivo, p50/p95/p99, errores y hit ratio.
+Every GET queries PostgreSQL, so the hypothetical peak needs at least 1,100 SQL operations/s. Two pools of 10 connections provide 20; with 10 ms average SQL latency, the theoretical no-overhead ceiling is 2,000 operations/s. This is neither measured capacity nor a guarantee: contention, storage, network, and queues reduce it. A Redis cache holding 100,000 hot destinations at 600 bytes would use about 60 MB of payload plus metadata and limiter overhead. Load tests must report hardware, duration, concurrency, effective QPS, p50/p95/p99, errors, and hit ratio.
 
-## Seguridad, datos y límites del lab
+## Security, data handling, and lab limits
 
-La política de destinos rechaza localhost, nombres internos y rangos IP privados/reservados tanto IPv4 como IPv6, con normalización mediante URL. No se resuelven DNS ni se visitan destinos; un dominio público puede cambiar su resolución y esta política no garantiza seguridad del navegador. El servicio público de redirección puede usarse para phishing: moderación, autenticación y análisis de reputación quedan fuera del alcance y serían necesarios para un servicio público comercial.
+Destination policy rejects localhost, internal names, and private/reserved IPv4 and IPv6 ranges after URL normalization. DNS is not resolved and destinations are never fetched; a public domain can change its resolution, so this policy is not browser security. A public redirect service can be abused for phishing; moderation, authentication, and reputation analysis are outside this lab and required for a commercial service.
 
-Logs contienen ID de request, método, estado, duración y contador por instancia; nunca URL original, query string, credenciales o secretos. Rate-limit keys pueden usar hash de IP y tienen TTL; no se guarda historial de navegación. El destino sigue siendo dato potencialmente sensible en PostgreSQL y Redis: controlar acceso, cifrado de volúmenes/backups y gestión de secretos. Retención se expresa mediante expiresAt; enlaces sin expiración requieren una política operativa explícita antes de producción. Purga por rol de mantenimiento, no runtime. Backups PostgreSQL regulares cifrados, retención limitada y ejercicios de restauración; un volumen Docker persistente no es un backup.
+Logs contain request ID, method, status, duration, and per-instance counters, never the original URL, query string, credentials, or secrets. Rate-limit keys may use an HMAC of the IP with a TTL; browsing history is not stored. Destinations remain potentially sensitive data in PostgreSQL and Redis: control access, encrypt volumes/backups, and manage secrets. Expiration is expressed by `expiresAt`; non-expiring links require an explicit operational policy before production. Purging is performed by the maintenance role, never runtime. PostgreSQL backups should be encrypted, retained for a limited period, and restore-tested; a persistent Docker volume is not a backup.
 
-Shutdown: dejar de aceptar tráfico, cerrar HTTP con timeout, cerrar pool y Redis. Healthchecks distinguen proceso y dependencia. Redis degradado permite GET y bloquea POST; eso reduce protección distribuida de GET y debe observarse. El lab no incluye alta disponibilidad de PostgreSQL/Redis, gestión automática de certificados, moderación ni recuperación regional. Los resultados ejecutados y los bloqueos del entorno se documentan sin presentarlos como pruebas exitosas.
+Shutdown stops accepting traffic, closes HTTP with a timeout, then closes the pool and Redis. Health checks distinguish process health from dependency readiness. Degraded Redis allows GET and blocks POST; this reduces distributed GET protection and must be monitored. The lab does not include PostgreSQL/Redis high availability, automatic certificate management, moderation, or regional recovery. Executed results and environment blockers are documented without presenting them as successful tests.

@@ -1,37 +1,37 @@
-# Reporte de verificación
+# Verification Report
 
-## Gate 1 — verificado
+## Gate 1 — verified
 
-Fecha: 2026-09-08. Entorno inicial: macOS 13.7.8 x86_64, Node.js 20.19.6. Node.js 24.6.0 también disponible para las siguientes fases.
+Date: 2026-09-08. Initial environment: macOS 13.7.8 x86_64, Node.js 20.19.6. Node.js 24.6.0 was also available for later phases.
 
-* `npm install`: dependencias instaladas. Advertencia inicial de engine porque el shell usaba Node 20; el proyecto requiere Node >=22.
-* `npm run typecheck`: aprobado.
-* `npm run test:contracts`: 3 pruebas aprobadas, cero fallos y cero omitidas. El primer intento fue bloqueado por el sandbox al crear el socket de tsx; repetido con autorización fuera del sandbox y aprobado.
+* `npm install`: dependencies installed. An initial engine warning appeared because the shell used Node 20; the project requires Node >=22.
+* `npm run typecheck`: passed.
+* `npm run test:contracts`: 3 tests passed, with no failures or skips. The first attempt was blocked by the sandbox while creating the tsx socket; it was repeated with authorization outside the sandbox and passed.
 
-Estos resultados solo verifican estructura y contratos, no un backend funcional.
+These results verify structure and contracts only, not a functional backend.
 
-## Gate 2 — verificado
+## Gate 2 — verified
 
-PostgreSQL 17.10 real en `127.0.0.1:55432`, binario temporal de `@embedded-postgres/darwin-x64@17.10.0-beta.17`; cliente psql 16.0 ya instalado con pgAdmin. No se empleó una simulación de PostgreSQL.
+Real PostgreSQL 17.10 at `127.0.0.1:55432`, using temporary `@embedded-postgres/darwin-x64@17.10.0-beta.17`; psql 16.0 was already installed. No PostgreSQL simulation was used.
 
-* `scripts/db-bootstrap.sh`: roles creados con contraseñas generadas, sin imprimirlas.
-* `scripts/db-migrate.sh`: primera y segunda ejecución aprobadas.
-* `tests/database/constraints.sql`: aprobado, incluyendo unicidad, formato, esquema URL, longitud, nulos, expiración, deshabilitación, eliminación y purga limitada.
-* `tests/database/catalog.sql`: aprobado, propietarios, search_path seguro y privilegios públicos.
-* `tests/database/runtime.sql`: aprobado conectado como link_runtime; accesos directos SELECT/INSERT/UPDATE/DELETE, TEMP, DDL, mutaciones administrativas y escalada de rol rechazados por PostgreSQL con insufficient_privilege.
-* `tests/database/maintenance.sql`: aprobado con rol separado.
+* `scripts/db-bootstrap.sh`: roles created with generated passwords, without printing them.
+* `scripts/db-migrate.sh`: first and replay migrations passed.
+* `tests/database/constraints.sql`: passed, including uniqueness, format, URL scheme, length, nullability, expiration, disable, delete, and bounded purge.
+* `tests/database/catalog.sql`: passed, including owners, safe search path, and public privileges.
+* `tests/database/runtime.sql`: passed as link_runtime; direct SELECT/INSERT/UPDATE/DELETE, TEMP, DDL, administrative mutations, and role escalation were rejected with `insufficient_privilege`.
+* `tests/database/maintenance.sql`: passed with the separate role.
 
-La primera creación de base falló por falta de disco durante la descarga de Colima. Se eliminó únicamente la imagen incompleta creada en esta tarea; se repitió el gate entero con `set -eu` y pasó. Docker/Colima/Compose están instalados pero el despliegue de contenedores sigue pendiente de espacio. No se declara verificada la infraestructura.
+The first database setup failed because Colima download ran out of disk space. Only the incomplete image created by this task was removed; the complete gate was then rerun with `set -eu` and passed. Docker/Colima/Compose deployment remains unverified because local container space is still insufficient.
 
-### Concurrencia e índices medidos
+### Measured concurrency and indexes
 
-`tests/database/concurrency.sh`: doce conexiones runtime intentaron crear simultáneamente el mismo código. Resultado comprobado: una creación y once errores SQLSTATE 23505. El fixture creado se retiró mediante `link_api.delete_link`, usando mantenimiento.
+`tests/database/concurrency.sh`: twelve runtime connections attempted the same code simultaneously. Result: one creation and eleven SQLSTATE 23505 errors. The fixture was removed through `link_api.delete_link` using maintenance credentials.
 
-`tests/database/explain.sql`, ejecutado con psql contra PostgreSQL 17.10: fixture de 100.000 enlaces, ANALYZE, dos EXPLAIN (ANALYZE, BUFFERS), ROLLBACK. Salida íntegra en [explain-results.txt](explain-results.txt).
+`tests/database/explain.sql`, run with psql against PostgreSQL 17.10, loaded 100,000 links, ran ANALYZE, produced two EXPLAIN (ANALYZE, BUFFERS) plans, and rolled back. Full output is in [explain-results.txt](explain-results.txt).
 
-| Consulta | Plan observado | Tiempo de ejecución de esta muestra |
+| Query | Observed plan | Sample execution time |
 |---|---|---|
-| Código exacto y vigencia | Index Scan links_short_code_key, 4 buffers hit | 0,041 ms |
-| Purga de 100 expirados | links_expiration_idx + links_pkey, 701 buffers hit | 0,881 ms |
+| Exact code and validity | Index Scan on `links_short_code_key`, 4 buffers hit | 0.041 ms |
+| Purge 100 expired links | `links_expiration_idx` + `links_pkey`, 701 buffers hit | 0.881 ms |
 
-Son muestras locales con buffers calientes y no incluyen red ni HTTP. No constituyen una medición de QPS de la aplicación ni un compromiso de producción.
+These are local samples with warm buffers and exclude network and HTTP. They are not application QPS measurements or production commitments.

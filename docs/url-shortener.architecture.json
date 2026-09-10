@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "URL Shortener — Runtime Architecture",
+    "output": "url-shortener-architecture.html",
+    "quality_profile": "showcase",
+    "views": [
+      { "id": "request-path", "label": "Request path", "focus": ["client", "nginx", "api1", "postgres"], "note": "Follow creation and resolution through the stateless API." },
+      { "id": "cache-rate", "label": "Cache and limits", "focus": ["api1", "redis", "postgres"], "note": "Redis accelerates lookups and coordinates distributed limits." },
+      { "id": "database-boundary", "label": "Database boundary", "focus": ["api1", "postgres"], "note": "The Database class invokes only published link_api functions." }
+    ]
+  },
+  "components": [
+    { "id": "client", "type": "external", "label": "Client", "sublabel": "HTTP consumer", "pos": [40, 310], "size": [130, 64] },
+    { "id": "nginx", "type": "security", "label": "Nginx", "sublabel": "TLS + load balancing", "pos": [250, 310], "size": [150, 64], "tag": "public edge" },
+    { "id": "api1", "type": "backend", "label": "Express API 1", "sublabel": "stateless :3000", "pos": [490, 220], "size": [160, 64] },
+    { "id": "api2", "type": "backend", "label": "Express API 2", "sublabel": "stateless :3000", "pos": [490, 400], "size": [160, 64] },
+    { "id": "database", "type": "backend", "label": "Database", "sublabel": "typed pool adapter", "pos": [730, 310], "size": [150, 64] },
+    { "id": "postgres", "type": "database", "label": "PostgreSQL", "sublabel": "link_api functions", "pos": [960, 310], "size": [160, 64] },
+    { "id": "redis", "type": "database", "label": "Redis", "sublabel": "cache + rate limit", "pos": [730, 120], "size": [150, 64] }
+  ],
+  "boundaries": [
+    { "kind": "security-group", "label": "Private application network", "wraps": ["api1", "api2", "database", "postgres", "redis"] }
+  ],
+  "connections": [
+    { "id": "client-nginx", "from": "client", "to": "nginx", "label": "HTTPS", "variant": "emphasis" },
+    { "id": "nginx-api1", "from": "nginx", "to": "api1", "label": "proxy", "fromSide": "right", "toSide": "left" },
+    { "id": "nginx-api2", "from": "nginx", "to": "api2", "label": "proxy", "fromSide": "right", "toSide": "left" },
+    { "id": "api1-db", "from": "api1", "to": "database", "label": "LinksService", "fromSide": "right", "toSide": "left" },
+    { "id": "api2-db", "from": "api2", "to": "database", "label": "LinksService", "fromSide": "right", "toSide": "left" },
+    { "id": "database-postgres", "from": "database", "to": "postgres", "label": "link_api.* functions", "variant": "security", "labelDy": 56 },
+    { "id": "api1-redis", "from": "api1", "to": "redis", "label": "cache + limits", "fromSide": "top", "toSide": "bottom" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Traffic", "items": ["Nginx terminates TLS and balances two API instances", "API exposes /shorten and 302 resolution"] },
+    { "dot": "emerald", "title": "Data path", "items": ["PostgreSQL remains the source of truth", "Redis uses cache-aside with bounded TTL"] },
+    { "dot": "rose", "title": "Security", "items": ["Runtime role executes published functions only", "Distributed limits use Redis and fail safely"] }
+  ]
+}

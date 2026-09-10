@@ -1,0 +1,437 @@
+{
+  "communities": {
+    "0": [
+      "apps_api_src_modules_links_links_controller",
+      "apps_api_src_modules_links_links_controller_linkscontroller",
+      "apps_api_src_modules_links_links_controller_linkscontroller_constructor",
+      "apps_api_src_modules_links_links_controller_linkscontroller_resolve",
+      "apps_api_src_modules_links_links_controller_linkscontroller_shorten",
+      "apps_api_src_modules_links_links_routes",
+      "apps_api_src_modules_links_links_service",
+      "apps_api_src_modules_links_links_service_generateshortcode",
+      "apps_api_src_modules_links_links_service_linksservice",
+      "packages_errors_src_index",
+      "packages_errors_src_index_apperror",
+      "packages_errors_src_index_apperror_constructor",
+      "packages_errors_src_index_collisionerror",
+      "packages_errors_src_index_collisionerror_constructor",
+      "packages_errors_src_index_definitions",
+      "packages_errors_src_index_errorcode",
+      "packages_rate_limit_src_index",
+      "packages_rate_limit_src_index_distributedratelimiter",
+      "packages_rate_limit_src_index_distributedratelimiter_check",
+      "packages_rate_limit_src_index_distributedratelimiter_constructor",
+      "packages_rate_limit_src_index_rate_limit_script",
+      "packages_rate_limit_src_index_ratelimitconfig",
+      "packages_rate_limit_src_index_rateredisport",
+      "packages_rate_limit_src_index_rateredisport_eval",
+      "packages_security_src_index",
+      "packages_security_src_index_internalsuffixes",
+      "packages_security_src_index_invalid",
+      "packages_security_src_index_validatecode",
+      "packages_security_src_index_validateshorteninput",
+      "ref_express",
+      "ref_ipaddr_js",
+      "tests_api_test",
+      "tests_api_test_check",
+      "tests_api_test_error",
+      "tests_api_test_fixture",
+      "tests_api_test_info",
+      "tests_api_test_row",
+      "tests_database_integration",
+      "tests_security_test",
+      "tests_security_test_config",
+      "tests_security_test_eval"
+    ],
+    "1": [
+      "eslint_config",
+      "package",
+      "package_dependencies",
+      "package_dependencies_express",
+      "package_dependencies_ioredis",
+      "package_dependencies_ipaddr_js",
+      "package_dependencies_pg",
+      "package_devdependencies",
+      "package_devdependencies_eslint",
+      "package_devdependencies_tsx",
+      "package_devdependencies_types_express",
+      "package_devdependencies_types_node",
+      "package_devdependencies_types_pg",
+      "package_devdependencies_typescript",
+      "package_devdependencies_typescript_eslint",
+      "package_engines",
+      "package_engines_node",
+      "package_name",
+      "package_private",
+      "package_scripts",
+      "package_scripts_test",
+      "package_scripts_test_contracts",
+      "package_scripts_typecheck",
+      "package_type",
+      "package_version",
+      "ref_eslint",
+      "ref_pg",
+      "ref_tsx",
+      "ref_types_express",
+      "ref_types_node",
+      "ref_types_pg",
+      "ref_typescript",
+      "ref_typescript_eslint",
+      "tests_architecture_test",
+      "tests_architecture_test_root",
+      "tests_architecture_test_sources",
+      "tests_architecture_test_violations"
+    ],
+    "2": [
+      "packages_database_src_database",
+      "packages_database_src_database_database",
+      "packages_database_src_database_database_close",
+      "packages_database_src_database_database_constructor",
+      "packages_database_src_database_database_createlink",
+      "packages_database_src_database_database_deletelink",
+      "packages_database_src_database_database_disablelink",
+      "packages_database_src_database_database_execute",
+      "packages_database_src_database_database_health",
+      "packages_database_src_database_database_map",
+      "packages_database_src_database_database_purgeexpiredlinks",
+      "packages_database_src_database_database_resolvelink",
+      "packages_database_src_database_types",
+      "packages_database_src_database_types_createlinkinput",
+      "packages_database_src_database_types_databaseoptions",
+      "packages_database_src_database_types_link",
+      "packages_database_src_database_types_poolport",
+      "packages_database_src_database_types_poolport_end",
+      "packages_database_src_database_types_poolport_on",
+      "packages_database_src_database_types_poolport_query",
+      "packages_database_src_index",
+      "tests_adapters_test",
+      "tests_adapters_test_env",
+      "tests_adapters_test_fakepool",
+      "tests_adapters_test_fakepool_end",
+      "tests_adapters_test_fakepool_on",
+      "tests_adapters_test_fakepool_query",
+      "tests_adapters_test_link",
+      "tests_adapters_test_logger",
+      "tests_adapters_test_logs",
+      "tests_adapters_test_options",
+      "tests_adapters_test_row"
+    ],
+    "3": [
+      "apps_api_src_app",
+      "apps_api_src_app_appdependencies",
+      "apps_api_src_app_createapp",
+      "apps_api_src_modules_links_links_routes_linksroutes",
+      "apps_api_src_modules_links_links_routes_ratelimiterport",
+      "apps_api_src_modules_links_links_routes_ratelimiterport_check",
+      "apps_api_src_server",
+      "apps_api_src_server_startserver",
+      "packages_cache_src_index",
+      "packages_cache_src_index_cachemetrics",
+      "packages_cache_src_index_createredisclient",
+      "packages_cache_src_index_linkcache_constructor",
+      "packages_config_src_index",
+      "packages_config_src_index_config",
+      "packages_config_src_index_loadconfig",
+      "packages_logger_src_index",
+      "packages_logger_src_index_createlogger",
+      "packages_logger_src_index_logger",
+      "packages_logger_src_index_logger_error",
+      "packages_logger_src_index_logger_info",
+      "packages_logger_src_index_safemetadata",
+      "ref_ioredis"
+    ],
+    "4": [
+      "apps_api_src_modules_links_links_service_linksservice_constructor",
+      "apps_api_src_modules_links_links_service_linksservice_deletelink",
+      "apps_api_src_modules_links_links_service_linksservice_disablelink",
+      "apps_api_src_modules_links_links_service_linksservice_resolve",
+      "apps_api_src_modules_links_links_service_linksservice_shorten",
+      "packages_cache_src_index_cacheport",
+      "packages_cache_src_index_cacheport_delete",
+      "packages_cache_src_index_cacheport_get",
+      "packages_cache_src_index_cacheport_health",
+      "packages_cache_src_index_cacheport_set",
+      "packages_database_src_database_types_databaseport",
+      "packages_database_src_database_types_databaseport_close",
+      "packages_database_src_database_types_databaseport_createlink",
+      "packages_database_src_database_types_databaseport_deletelink",
+      "packages_database_src_database_types_databaseport_disablelink",
+      "packages_database_src_database_types_databaseport_health",
+      "packages_database_src_database_types_databaseport_purgeexpiredlinks",
+      "packages_database_src_database_types_databaseport_resolvelink"
+    ],
+    "5": [
+      "packages_cache_src_index_cacheredisport",
+      "packages_cache_src_index_cacheredisport_del",
+      "packages_cache_src_index_cacheredisport_get",
+      "packages_cache_src_index_cacheredisport_ping",
+      "packages_cache_src_index_cacheredisport_set",
+      "packages_cache_src_index_decode",
+      "packages_cache_src_index_linkcache",
+      "packages_cache_src_index_linkcache_delete",
+      "packages_cache_src_index_linkcache_get",
+      "packages_cache_src_index_linkcache_health",
+      "packages_cache_src_index_linkcache_metrics",
+      "packages_cache_src_index_linkcache_set",
+      "tests_adapters_test_fakeredis",
+      "tests_adapters_test_fakeredis_del",
+      "tests_adapters_test_fakeredis_get",
+      "tests_adapters_test_fakeredis_ping",
+      "tests_adapters_test_fakeredis_set"
+    ],
+    "6": [
+      "tsconfig",
+      "tsconfig_compileroptions",
+      "tsconfig_compileroptions_esmoduleinterop",
+      "tsconfig_compileroptions_forceconsistentcasinginfilenames",
+      "tsconfig_compileroptions_module",
+      "tsconfig_compileroptions_moduleresolution",
+      "tsconfig_compileroptions_outdir",
+      "tsconfig_compileroptions_rootdir",
+      "tsconfig_compileroptions_skiplibcheck",
+      "tsconfig_compileroptions_strict",
+      "tsconfig_compileroptions_target",
+      "tsconfig_compileroptions_types",
+      "tsconfig_exclude",
+      "tsconfig_include"
+    ],
+    "7": [
+      "database_functions_001_link_api",
+      "database_functions_001_link_api_link_api_create_link",
+      "database_functions_001_link_api_link_api_delete_link",
+      "database_functions_001_link_api_link_api_disable_link",
+      "database_functions_001_link_api_link_api_health",
+      "database_functions_001_link_api_link_api_purge_expired_links",
+      "database_functions_001_link_api_link_api_resolve_link",
+      "link_data_links"
+    ],
+    "8": [
+      "scripts_test_db",
+      "scripts_test_db_pgpassword",
+      "scripts_test_db_pguser",
+      "scripts_test_db_sh__entry"
+    ],
+    "9": [
+      "tests_contracts_test",
+      "tests_contracts_test_read",
+      "tests_contracts_test_root"
+    ],
+    "10": [
+      "tests_database_concurrency",
+      "tests_database_concurrency_cleanup",
+      "tests_database_concurrency_sh__entry"
+    ],
+    "11": [
+      "database_migrate",
+      "database_migrate_link_meta_migrations"
+    ],
+    "12": [
+      "database_migrations_001_links",
+      "database_migrations_001_links_link_data_links"
+    ],
+    "13": [
+      "scripts_db_bootstrap",
+      "scripts_db_bootstrap_sh__entry"
+    ],
+    "14": [
+      "scripts_db_migrate",
+      "scripts_db_migrate_sh__entry"
+    ],
+    "15": [
+      "scripts_setup_env",
+      "scripts_setup_env_sh__entry"
+    ],
+    "16": [
+      "database_roles_bootstrap"
+    ],
+    "17": [
+      "database_roles_grants"
+    ],
+    "18": [
+      "tests_database_catalog"
+    ],
+    "19": [
+      "tests_database_constraints"
+    ],
+    "20": [
+      "tests_database_explain"
+    ],
+    "21": [
+      "tests_database_maintenance"
+    ],
+    "22": [
+      "tests_database_runtime"
+    ]
+  },
+  "cohesion": {
+    "0": 0.0951219512195122,
+    "1": 0.05405405405405406,
+    "2": 0.125,
+    "3": 0.1774891774891775,
+    "4": 0.1503267973856209,
+    "5": 0.14705882352941177,
+    "6": 0.14285714285714285,
+    "7": 0.2857142857142857,
+    "8": 0.5,
+    "9": 0.6666666666666666,
+    "10": 0.6666666666666666,
+    "11": 1.0,
+    "12": 1.0,
+    "13": 1.0,
+    "14": 1.0,
+    "15": 1.0,
+    "16": 1.0,
+    "17": 1.0,
+    "18": 1.0,
+    "19": 1.0,
+    "20": 1.0,
+    "21": 1.0,
+    "22": 1.0
+  },
+  "gods": [
+    {
+      "id": "packages_errors_src_index_apperror",
+      "label": "AppError",
+      "degree": 23
+    },
+    {
+      "id": "packages_database_src_database_types_link",
+      "label": "Link",
+      "degree": 19
+    },
+    {
+      "id": "packages_database_src_database_database",
+      "label": "Database",
+      "degree": 18
+    },
+    {
+      "id": "packages_database_src_database_types_databaseport",
+      "label": "DatabasePort",
+      "degree": 16
+    },
+    {
+      "id": "apps_api_src_modules_links_links_service_linksservice",
+      "label": "LinksService",
+      "degree": 13
+    },
+    {
+      "id": "packages_cache_src_index_cacheport",
+      "label": "CachePort",
+      "degree": 11
+    },
+    {
+      "id": "packages_cache_src_index_linkcache",
+      "label": "LinkCache",
+      "degree": 11
+    },
+    {
+      "id": "tsconfig_compileroptions",
+      "label": "compilerOptions",
+      "degree": 11
+    },
+    {
+      "id": "packages_database_src_database_types_poolport",
+      "label": "PoolPort",
+      "degree": 10
+    },
+    {
+      "id": "packages_logger_src_index_logger",
+      "label": "Logger",
+      "degree": 9
+    }
+  ],
+  "surprises": [
+    {
+      "source": "fixture()",
+      "target": "LinksService",
+      "source_files": [
+        "tests/api.test.ts",
+        "apps/api/src/modules/links/links.service.ts"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories; peripheral node `fixture()` unexpectedly reaches hub `LinksService`"
+    },
+    {
+      "source": "createApp()",
+      "target": "AppError",
+      "source_files": [
+        "apps/api/src/app.ts",
+        "packages/errors/src/index.ts"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "linksRoutes()",
+      "target": "AppError",
+      "source_files": [
+        "apps/api/src/modules/links/links.routes.ts",
+        "packages/errors/src/index.ts"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "check()",
+      "target": "AppError",
+      "source_files": [
+        "tests/api.test.ts",
+        "packages/errors/src/index.ts"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories; peripheral node `check()` unexpectedly reaches hub `AppError`"
+    },
+    {
+      "source": "startServer()",
+      "target": "DistributedRateLimiter",
+      "source_files": [
+        "apps/api/src/server.ts",
+        "packages/rate-limit/src/index.ts"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories; bridges separate communities"
+    }
+  ],
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `AppError` connect `AppError` to `adapters.test.ts`, `app.ts`, `DatabasePort`?",
+      "why": "High betweenness centrality (0.087) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `express` connect `AppError` to `package.json`, `app.ts`?",
+      "why": "High betweenness centrality (0.063) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `pg` connect `package.json` to `adapters.test.ts`?",
+      "why": "High betweenness centrality (0.061) - this node is a cross-community bridge."
+    },
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `ErrorCode`, `RateLimitConfig`, `CacheMetrics` to the rest of the system?",
+      "why": "61 weakly-connected nodes found - possible documentation gaps or missing edges."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `AppError` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.0951219512195122 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `package.json` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.05405405405405406 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `adapters.test.ts` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.125 - nodes in this community are weakly interconnected."
+    }
+  ]
+}
